@@ -1,0 +1,166 @@
+<?php
+
+//TeST
+//
+/**
+ * Implements hook_field_formatter_info().
+ */
+function image_cover_field_formatter_info() {
+  $formatters = array(
+    'file_image_cover' => array(
+      'label' => t('Image CSS Cover'),
+      'description' => t('Adds an inline div.image.cover with an inline style for the image path'),
+      'field types' => array('image'),
+      'settings' => array(
+        'image_style' => '',
+        // 'image_link' => ''
+      ),
+      'file formatter' => array(
+        'hidden' => FALSE,
+        'mime types' => array('image/*'),
+      ),
+    ),
+  );
+
+  return $formatters;
+}
+
+
+/**
+ * Implements hook_field_formatter_settings_form().
+ */
+function image_cover_field_formatter_settings_form($field, $instance, $view_mode, $form, &$form_state) {
+  $display = $instance['display'][$view_mode];
+  $settings = $display['settings'];
+
+  $image_styles = image_style_options(FALSE, PASS_THROUGH);
+  $element['image_style'] = array(
+    '#title' => t('Image style'),
+    '#type' => 'select',
+    '#default_value' => $settings['image_style'],
+    '#empty_option' => t('None (original image)'),
+    '#options' => $image_styles,
+  );
+
+  $anchor_options = array(
+    'center' => 'Center',
+    'top-left' => 'Top Left',
+    'top' => 'Top',
+    'top-right' => 'Top Right',
+    'right' => 'Right',
+    'bottom-right' => 'Bottom Right',
+    'bottom' => 'Bottom',
+    'bottom-left' => 'Bottom Left',
+    'left' => 'Left',
+  );
+
+  $element['image_anchor'] = array(
+    '#title' => t('Anchor Position'),
+    '#type' => 'select',
+    '#default_value' => $settings['image_anchor'],
+    // '#empty_option' => t('center'),
+    '#options' => $anchor_options,
+  );
+
+  // $link_types = array(
+  //   'content' => t('Content'),
+  //   'file' => t('File'),
+  // );
+  // $element['image_link'] = array(
+  //   '#title' => t('Link image to'),
+  //   '#type' => 'select',
+  //   '#default_value' => $settings['image_link'],
+  //   '#empty_option' => t('Nothing'),
+  //   '#options' => $link_types,
+  // );
+
+  return $element;
+
+}
+
+/**
+ * Implements hook_field_formatter_settings_summary().
+ */
+function image_cover_field_formatter_settings_summary($field, $instance, $view_mode) {
+  $display = $instance['display'][$view_mode];
+  $settings = $display['settings'];
+
+  $summary = array();
+
+  $image_styles = image_style_options(FALSE, PASS_THROUGH);
+  // Unset possible 'No defined styles' option.
+  unset($image_styles['']);
+  // Styles could be lost because of enabled/disabled modules that defines
+  // their styles in code.
+  if (isset($image_styles[$settings['image_style']])) {
+    $summary[] = t('Image style: @style', array('@style' => $image_styles[$settings['image_style']]));
+  }
+  else {
+    $summary[] = t('Original image');
+  }
+
+  // $link_types = array(
+  //   'content' => t('Linked to content'),
+  //   'file' => t('Linked to file'),
+  // );
+  // // Display this setting only if image is linked.
+  // if (isset($link_types[$settings['image_link']])) {
+  //   $summary[] = $link_types[$settings['image_link']];
+  // }
+
+  return implode('<br />', $summary);
+
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ */
+function image_cover_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+  $settings = $display['settings'];
+
+  if($display['type'] == 'file_image_cover') {
+    foreach ($items as $delta => $item) {
+      if ($settings['image_style']) {
+        $path = image_style_url($settings['image_style'], $item['uri']);
+      }
+      else {
+        $path = file_create_url($file->uri);
+      }
+
+      //This is a bit of a secret.  If the entity has a field_file_image_focal_point, use that
+      if(isset($entity->field_file_image_focal_point) && !empty($entity->field_file_image_focal_point['und'])){
+        $anchor = $entity->field_file_image_focal_point['und'][0]['value'];
+      }
+      elseif(isset($settings['image_anchor'])){
+        $anchor = $settings['image_anchor'];
+      }
+      else {
+        $anchor = 'center';
+      }
+
+      $element[$delta] = array(
+        '#theme' => 'image_cover',
+        '#path' => $path,
+        '#anchor' => $anchor,
+        '#image_style' => $settings['image_style'],
+      );
+    }
+  }
+  return $element;
+}
+/**
+ * Implements hook_theme().
+ */
+function image_cover_theme() {
+  return array(
+    'image_cover' => array(
+      'variables' => array(
+        'path' => NULL,
+        'anchor' => NULL,
+      ),
+      'file' => 'image_cover.theme.inc',
+    ),
+  );
+}
+

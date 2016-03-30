@@ -1,0 +1,7 @@
+;https://github.com/reubenmoes/drupal-module-image_cover
+name = Image Cover
+description = Adds an image formatter that outputs as &lt;div class="image cover" style="background-image: url(IMAGEPATH)"&gt;&lt/div&gt; - Brought to you by reuben@domain7.com
+package = Other
+core = 7.x
+
+dependencies[] = image
